@@ -1,35 +1,62 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useEffect } from "react";
+
+import { Description, Feedback, Options } from "./components";
+import { FEEDBACK_TYPES, FEEDBACK_STORAGE_KEY } from "./types";
+import { Container } from "./shared";
+import styles from "./App.module.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [feedback, setFeedback] = useState(() => {
+    const savedFeedback = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+    if (savedFeedback) {
+      try {
+        return JSON.parse(savedFeedback);
+      } catch (error) {
+        console.error("Error loading feedback from localStorage:", error);
+      }
+    }
+    return {
+      [FEEDBACK_TYPES.GOOD]: 0,
+      [FEEDBACK_TYPES.NEUTRAL]: 0,
+      [FEEDBACK_TYPES.BAD]: 0,
+    };
+  });
+  const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(feedback));
+  }, [feedback]);
+
+  useEffect(() => {
+    if (Object.values(feedback).some((value) => value > 0)) {
+      setIsFeedbackVisible(true);
+    } else {
+      setIsFeedbackVisible(false);
+    }
+  }, [feedback]);
+
+  const updateFeedback = (feedbackType) => {
+    setFeedback({ ...feedback, [feedbackType]: feedback[feedbackType] + 1 });
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <Container>
+      <div className={styles.app}>
+        <Description />
+        <Options
+          feedback={feedback}
+          setFeedback={setFeedback}
+          onUpdateFeedback={updateFeedback}
+          isResetVisible={isFeedbackVisible}
+        />
+        {isFeedbackVisible ? (
+          <Feedback feedback={feedback} />
+        ) : (
+          <p className={styles.noFeedback}>No feedback yet</p>
+        )}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </Container>
+  );
 }
 
-export default App
+export default App;
